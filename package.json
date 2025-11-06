@@ -1,0 +1,25 @@
+{
+  "name": "movie_api",
+  "version": "1.0.0",
+  "description": "A simple Node.js web server project built for **CareerFoundry – Achievement 2**.   This project demonstrates using Node’s built-in **http**, **url**, and **fs** modules to:",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zachariahmellis-coder/movie_api.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/zachariahmellis-coder/movie_api/issues"
+  },
+  "homepage": "https://github.com/zachariahmellis-coder/movie_api#readme",
+  "dependencies": {
+    "body-parser": "^2.2.0",
+    "express": "^5.1.0"
+  }
+}

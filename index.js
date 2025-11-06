@@ -1,0 +1,1 @@
+console.log("Max's Movie API project setup complete!");
