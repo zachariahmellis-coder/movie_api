@@ -1,15 +1,8 @@
+# Node dependencies
 node_modules/
-node_modules/
-node_modules/
+
+# Logs
 log.txt
 
-node_modules/
-log.txt
-documentation.html
-
-node_modules/
-log.txt
-
-log.txt
-node_modules/
+# macOS system files
 .DS_Store
