@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Max's Movie API — Documentation</title>
+</head>
+
+<body>
+  <h1>Max's Movie API</h1>
+
+  <p>
+    This API provides movie, genre, director, and user endpoints for the myFlix application.
+  </p>
+
+  <h2>Getting Started</h2>
+  <ol>
+    <li>Start the server: <code>node index.js</code></li>
+    <li>Home: <code>http://localhost:8080</code></li>
+    <li>Docs: <code>http://localhost:8080/documentation</code></li>
+  </ol>
+
+  <h2>Endpoints Summary</h2>
+  <table border="1" cellpadding="8">
+    <thead>
+      <tr>
+        <th>Request</th>
+        <th>URL</th>
+        <th>Method</th>
+        <th>URL Params</th>
+        <th>Request Body (Example)</th>
+        <th>Response Format</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Get all movies</td>
+        <td><code>/movies</code></td>
+        <td>GET</td>
+        <td>None</td>
+        <td>None</td>
+        <td>JSON array (or text confirmation)</td>
+      </tr>
+
+      <tr>
+        <td>Get movie by title</td>
+        <td><code>/movies/:title</code></td>
+        <td>GET</td>
+        <td><code>title</code> (string)</td>
+        <td>None</td>
+        <td>JSON object (or text confirmation)</td>
+      </tr>
+
+      <tr>
+        <td>Get genre by name</td>
+        <td><code>/genres/:name</code></td>
+        <td>GET</td>
+        <td><code>name</code> (string)</td>
+        <td>None</td>
+        <td>Text or JSON describing the genre</td>
+      </tr>
+
+      <tr>
+        <td>Get director by name</td>
+        <td><code>/directors/:name</code></td>
+        <td>GET</td>
+        <td><code>name</code> (string)</td>
+        <td>None</td>
+        <td>Text or JSON with director data</td>
+      </tr>
+
+      <tr>
+        <td>Register a new user</td>
+        <td><code>/users</code></td>
+        <td>POST</td>
+        <td>None</td>
+        <td>
+<pre>{
+  "Username": "MaxTest",
+  "Password": "SuperSecret123",
+  "Email": "maxtest@example.com",
+  "Birthday": "1985-01-01"
+}</pre>
+        </td>
+        <td>Text confirmation or JSON of created user</td>
+      </tr>
+
+      <tr>
+        <td>Update user info</td>
+        <td><code>/users/:username</code></td>
+        <td>PUT</td>
+        <td><code>username</code> (string)</td>
+        <td>
+<pre>{
+  "Username": "MaxTestV2"
+}</pre>
+        </td>
+        <td>Text confirmation or JSON of updated user</td>
+      </tr>
+
+      <tr>
+        <td>Add favorite movie</td>
+        <td><code>/users/:username/movies/:movieId</code></td>
+        <td>POST</td>
+        <td><code>username</code>, <code>movieId</code></td>
+        <td>None</td>
+        <td>Text confirmation</td>
+      </tr>
+
+      <tr>
+        <td>Remove favorite movie</td>
+        <td><code>/users/:username/movies/:movieId</code></td>
+        <td>DELETE</td>
+        <td><code>username</code>, <code>movieId</code></td>
+        <td>None</td>
+        <td>Text confirmation</td>
+      </tr>
+
+      <tr>
+        <td>Deregister user</td>
+        <td><code>/users/:username</code></td>
+        <td>DELETE</td>
+        <td><code>username</code></td>
+        <td>None</td>
+        <td>Text confirmation</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Endpoint Details</h2>
+
+  <h3>GET /movies</h3>
+  <ul>
+    <li><strong>Description:</strong> Returns a list of all movies.</li>
+    <li><strong>URL:</strong> <code>/movies</code></li>
+    <li><strong>Method:</strong> GET</li>
+    <li><strong>URL Params:</strong> None</li>
+    <li><strong>Request Body:</strong> None</li>
+    <li><strong>Response Format:</strong> JSON array (or text confirmation)</li>
+  </ul>
+
+  <h3>GET /movies/:title</h3>
+  <ul>
+    <li><strong>Description:</strong> Returns data about a single movie by title.</li>
+    <li><strong>URL:</strong> <code>/movies/:title</code></li>
+    <li><strong>Method:</strong> GET</li>
+    <li><strong>URL Params:</strong> <code>title</code> (string)</li>
+    <li><strong>Request Body:</strong> None</li>
+    <li><strong>Response Format:</strong> JSON object (or text confirmation)</li>
+  </ul>
+
+  <h3>GET /genres/:name</h3>
+  <ul>
+    <li><strong>Description:</strong> Returns data about a genre by name.</li>
+    <li><strong>URL:</strong> <code>/genres/:name</code></li>
+    <li><strong>Method:</strong> GET</li>
+    <li><strong>URL Params:</strong> <code>name</code> (string)</li>
+    <li><strong>Request Body:</strong> None</li>
+    <li><strong>Response Format:</strong> Text or JSON describing the genre</li>
+  </ul>
+
+  <h3>GET /directors/:name</h3>
+  <ul>
+    <li><strong>Description:</strong> Returns data about a director by name.</li>
+    <li><strong>URL:</strong> <code>/directors/:name</code></li>
+    <li><strong>Method:</strong> GET</li>
+    <li><strong>URL Params:</strong> <code>name</code> (string)</li>
+    <li><strong>Request Body:</strong> None</li>
+    <li><strong>Response Format:</strong> Text or JSON with director data</li>
+  </ul>
+
+  <h3>POST /users</h3>
+  <ul>
+    <li><strong>Description:</strong> Registers a new user.</li>
+    <li><strong>URL:</strong> <code>/users</code></li>
+    <li><strong>Method:</strong> POST</li>
+    <li><strong>URL Params:</strong> None</li>
+    <li><strong>Request Body Example:</strong>
+<pre>{
+  "Username": "MaxTestVersion2",
+  "Password": "SuperSecret123",
+  "Email": "maxtest@example.com",
+  "Birthday": "1985-01-01"
+}</pre>
+    </li>
+    <li><strong>Response Format:</strong> Text confirmation or JSON of created user</li>
+  </ul>
+
+  <h3>PUT /users/:username</h3>
+  <ul>
+    <li><strong>Description:</strong> Updates user information for a given username.</li>
+    <li><strong>URL:</strong> <code>/users/:username</code></li>
+    <li><strong>Method:</strong> PUT</li>
+    <li><strong>URL Params:</strong> <code>username</code> (string)</li>
+    <li><strong>Request Body Example:</strong>
+<pre>{
+  "Username": "MaxTestV2"
+}</pre>
+    </li>
+    <li><strong>Response Format:</strong> Text confirmation or JSON of updated user</li>
+  </ul>
+
+  <h3>POST /users/:username/movies/:movieId</h3>
+  <ul>
+    <li><strong>Description:</strong> Adds a movie to a user’s favorites list.</li>
+    <li><strong>URL:</strong> <code>/users/:username/movies/:movieId</code></li>
+    <li><strong>Method:</strong> POST</li>
+    <li><strong>URL Params:</strong> <code>username</code>, <code>movieId</code></li>
+    <li><strong>Request Body:</strong> None</li>
+    <li><strong>Response Format:</strong> Text confirmation</li>
+  </ul>
+
+  <h3>DELETE /users/:username/movies/:movieId</h3>
+  <ul>
+    <li><strong>Description:</strong> Removes a movie from a user’s favorites list.</li>
+    <li><strong>URL:</strong> <code>/users/:username/movies/:movieId</code></li>
+    <li><strong>Method:</strong> DELETE</li>
+    <li><strong>URL Params:</strong> <code>username</code>, <code>movieId</code></li>
+    <li><strong>Request Body:</strong> None</li>
+    <li><strong>Response Format:</strong> Text confirmation</li>
+  </ul>
+
+  <h3>DELETE /users/:username</h3>
+  <ul>
+    <li><strong>Description:</strong> Deregisters (deletes) a user.</li>
+    <li><strong>URL:</strong> <code>/users/:username</code></li>
+    <li><strong>Method:</strong> DELETE</li>
+    <li><strong>URL Params:</strong> <code>username</code></li>
+    <li><strong>Request Body:</strong> None</li>
+    <li><strong>Response Format:</strong> Text confirmation</li>
+  </ul>
+
+</body>
+</html>
