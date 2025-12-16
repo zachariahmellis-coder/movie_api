@@ -1,6 +1,7 @@
 const express = require('express');
 const morgan = require('morgan');
 const app = express();
+console.log("RUNNING FILE:", __filename);
 
 //Middleware: serves static file from 'public'
 app.use(morgan('common'));
@@ -82,7 +83,7 @@ app.delete('/users/:username', (req, res) => {
 });
 
 // Error handling middleware
-app.use((err, req, res) => {
+app.use((err, req, res, _next) => {
   console.error(err.stack);
   res.status(500).send('Oh no! Something broke! 🙉');
 });
