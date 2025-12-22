@@ -1,8 +1,14 @@
 # Node dependencies
 node_modules/
 
+# Environment variables (DO NOT COMMIT)
+.env
+
 # Logs
 log.txt
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # macOS system files
 .DS_Store
