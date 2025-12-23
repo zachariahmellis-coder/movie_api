@@ -1,62 +1,115 @@
-# 🎬 Movie API
+🎬 Movie API
 
-A simple Node.js web server project built for **CareerFoundry – Achievement 2**.  
-This project demonstrates using Node’s built-in **http**, **url**, and **fs** modules to:
+A Node.js REST API built for CareerFoundry – Achievement 2 using Express and PostgreSQL.
 
-- Serve different HTML pages based on the request path (`/` and `/documentation`)
-- Log incoming requests with timestamps into a `log.txt` file
-- Handle unknown routes with a friendly 404 error message
+This project demonstrates:
 
----
+Express server setup with middleware
+PostgreSQL database integration using a connection pool
+Environment-based configuration
+Secure database access with a least-privilege user
+Health check endpoint for verifying database connectivity
+Graceful server shutdown
 
-## 🗂 Project Structure
-```
+This project fulfills the database querying and SQL requirements for CareerFoundry Achievement 2.
 
+🗂 Project Structure
 movie_api/
-├── documentation.html
-├── index.html
-├── log.txt
-├── server.js
-└── test.js
+├── db.js # PostgreSQL connection pool
+├── index.js # Express server entry point
+├── schema.sql # Database schema
+├── seed.sql # Sample seed data
+├── public/ # Static files (if applicable)
+├── .env.example # Environment variable template
+├── .gitignore
+├── package.json
+└── README.md
 
-````
+⚙️ Requirements
 
----
+Node.js v18+
 
-## ⚙️ How to Run
-Step 1 Open your terminal and navigate to the project folder:
-   ```bash
-   cd ~/projects/movie_api
-````
+PostgreSQL (local installation)
 
-Step 2 Start the server:
+npm
 
-   ```bash
-   node server.js
-   ```
+🚀 Setup Instructions
+1️⃣ Install dependencies
+npm install
 
-Step 3 Open your browser and visit:
+2️⃣ Environment variables
 
-   * [http://localhost:8080](http://localhost:8080)
-   * [http://localhost:8080/documentation](http://localhost:8080/documentation)
+Create a .env file using the provided example:
 
-Step 4 Check your request logs:
+cp .env.example .env
 
-   ```bash
-   cat log.txt
-   ```
+Update .env with your local database credentials:
 
----
+PORT=3000
+DATABASE_URL=postgres://movie_api_app:YOUR_PASSWORD@localhost:5432/movie_api
 
-## 💡 Future Improvements
+⚠️ .env is intentionally ignored by Git and should never be committed.
 
-* Add a custom `404.html` page
-* Integrate Express.js for more routing features
-* Add unit tests for route handling
+3️⃣ Database setup
 
----
+Run the schema and seed files as your dev/admin user (not the app user):
 
-**Created by:** Zachariah M. Ellis
-*Evolving with purpose — building a limitless digital life.*
+psql -U zachariahmellis -d movie_api -h localhost -p 5432 -f schema.sql
+psql -U zachariahmellis -d movie_api -h localhost -p 5432 -f seed.sql
 
-```
+▶️ Running the Server
+
+Start the API:
+
+npm start
+
+You should see:
+
+Server running on http://localhost:3000
+
+✅ Health Check Endpoint
+
+Verify the server and database connection:
+
+curl http://localhost:3000/health
+
+Expected response:
+
+{
+"ok": true,
+"db": 1
+}
+
+This confirms:
+
+Express is running
+PostgreSQL is connected
+Environment variables are configured correctly
+
+🔐 Database Security Notes
+The application connects using a least-privilege database user
+Schema changes are run manually via SQL scripts
+The app user cannot create or alter tables
+This mirrors real-world production best practices.
+
+🧠 Key Learning Outcomes
+Express routing and middleware
+PostgreSQL connection pooling
+Environment variable management
+Secure database role separation
+Graceful server shutdown handling
+Clean project and Git hygiene
+
+🔮 Future Improvements
+Add full CRUD endpoints for movies
+Add request validation
+Implement centralized error handling
+Add automated tests
+Containerize with Docker
+
+📂 CareerFoundry Submission Notes
+
+SQL query screenshots and a full PostgreSQL database export are included separately with the project submission, as required by the Achievement rubric.
+
+Created by: Zachariah M. Ellis
+Evolving with purpose — building a limitless digital life.
