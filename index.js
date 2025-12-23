@@ -4,40 +4,36 @@ import bodyParser from "body-parser";
 import { pool } from "./db.js";
 
 const app = express();
+const PORT = process.env.PORT || 3000;
 
+// Middleware
 app.use(morgan("common"));
-app.use(bodyParser.json());
+app.use(express.json());
 
+// Health check route
 app.get("/health", async (req, res) => {
   try {
-    const r = await pool.query("select 1 as ok");
-    res.json({ ok: true, db: r.rows[0].ok });
-  } catch (err) {
-    console.error("DB health check failed:", err);
-    res.status(500).json({ ok: false, db: false });
+    const result = await pool.query("SELECT 1 AS ok");
+    res.json({ ok: true, db: result.rows[0].ok });
+  } catch (error) {
+    console.error("Database health check failed:", error);
+    res.status(500).json({ ok: false });
   }
 });
 
-const PORT = process.env.PORT || 3000;
-
+// Start server
 const server = app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Server running at http://localhost:${PORT}`);
 });
 
-const shutdown = async (signal) => {
-  console.log(`\nShutting down (${signal})...`);
+// Graceful shutdown
+const shutdown = () => {
+  console.log("\nShutting down server...");
   server.close(async () => {
-    try {
-      await pool.end();
-      process.exit(0);
-    } catch (err) {
-      console.error("Error during shutdown:", err);
-      process.exit(1);
-    }
+    await pool.end();
+    process.exit(0);
   });
 };
 
-process.on("SIGINT", () => shutdown("SIGINT"));
-process.on("SIGTERM", () => shutdown("SIGTERM"));
-
-
+process.on("SIGINT", shutdown);
+process.on("SIGTERM", shutdown);
