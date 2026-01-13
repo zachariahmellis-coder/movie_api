@@ -13,5 +13,9 @@ yarn-error.log*
 # macOS system files
 .DS_Store
 
+# Exports for submission
+movies.json
+users.json
+
 *.swp
 
