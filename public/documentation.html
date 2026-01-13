@@ -1,27 +1,137 @@
+<!-- public/documentation.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Max's Movie API — Documentation</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>myFlix API Documentation</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      margin: 40px;
+      line-height: 1.6;
+      background: #0f172a;
+      color: #e5e7eb;
+    }
+    h1, h2, h3 { color: #38bdf8; }
+    a { color: #a5f3fc; }
+    code {
+      background: #020617;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #a5f3fc;
+    }
+    pre {
+      background: #020617;
+      padding: 12px;
+      border-radius: 6px;
+      overflow-x: auto;
+      border: 1px solid #334155;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 20px 0;
+    }
+    th, td {
+      border: 1px solid #334155;
+      padding: 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: #020617; }
+    tr:nth-child(even) { background: #0b1226; }
+    hr {
+      border: none;
+      border-top: 1px solid #334155;
+      margin: 28px 0;
+    }
+    .pill {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 999px;
+      background: #020617;
+      border: 1px solid #334155;
+      color: #a5f3fc;
+      font-size: 12px;
+      margin-left: 8px;
+    }
+    .muted { color: #94a3b8; }
+  </style>
 </head>
 
 <body>
-  <h1>Max's Movie API</h1>
+  <h1>🎬 myFlix API Documentation</h1>
 
   <p>
-    This API provides movie, genre, director, and user endpoints for the myFlix application.
+    The <strong>myFlix API</strong> is a RESTful backend built with
+    <strong>Node.js</strong>, <strong>Express</strong>, <strong>MongoDB</strong>,
+    and <strong>Mongoose</strong>. It provides endpoints for movies, genres,
+    directors, and user accounts (including favorites).
   </p>
 
-  <h2>Getting Started</h2>
-  <ol>
-    <li>Start the server: <code>node index.js</code></li>
-    <li>Home: <code>http://localhost:8080</code></li>
-    <li>Docs: <code>http://localhost:8080/documentation</code></li>
-  </ol>
+  <h2>Base URL</h2>
+  <p><code>http://localhost:3000</code></p>
+
+  <p>
+    Docs route:
+    <code>/documentation</code> (redirects to <code>/documentation.html</code>)
+  </p>
+
+  <hr />
+
+  <h2>Data Models (Mongoose)</h2>
+
+  <h3>Movie</h3>
+  <pre>{
+  "_id": "ObjectId",
+  "Title": "String (required)",
+  "Description": "String (required)",
+  "Genre": {
+    "Name": "String (required)",
+    "Description": "String (required)"
+  },
+  "Director": {
+    "Name": "String (required)",
+    "Bio": "String (required)",
+    "Birth": "String (optional)",
+    "Death": "String (optional)"
+  },
+  "ImagePath": "String (required)",
+  "Featured": "Boolean (default: false)",
+  "Actors": ["String"],
+  "ReleaseYear": "Number (optional)",
+  "Rating": "String (optional)",
+  "createdAt": "Date",
+  "updatedAt": "Date"
+}</pre>
+
+  <h3>User</h3>
+  <pre>{
+  "_id": "ObjectId",
+  "Username": "String (required, unique)",
+  "Password": "String (required)",
+  "Email": "String (required, unique)",
+  "Birthday": "Date (optional)",
+  "FavoriteMovies": ["ObjectId (ref: Movie)"],
+  "createdAt": "Date",
+  "updatedAt": "Date"
+}</pre>
+
+  <p class="muted">
+    Note: Some endpoints return <code>FavoriteMovies</code> populated with full Movie documents
+    (not just ObjectIds).
+  </p>
+
+  <p class="muted">
+    Note: Passwords are stored in plain text for this project; authentication and hashing
+    will be implemented in a later iteration.
+  </p>
+
+  <hr />
 
   <h2>Endpoints Summary</h2>
-  <table border="1" cellpadding="8">
+  <table>
     <thead>
       <tr>
         <th>Request</th>
@@ -29,17 +139,26 @@
         <th>Method</th>
         <th>URL Params</th>
         <th>Request Body (Example)</th>
-        <th>Response Format</th>
+        <th>Response</th>
       </tr>
     </thead>
     <tbody>
+      <tr>
+        <td>Health check</td>
+        <td><code>/health</code></td>
+        <td>GET</td>
+        <td>None</td>
+        <td>None</td>
+        <td>JSON with Mongo connection state</td>
+      </tr>
+
       <tr>
         <td>Get all movies</td>
         <td><code>/movies</code></td>
         <td>GET</td>
         <td>None</td>
         <td>None</td>
-        <td>JSON array (or text confirmation)</td>
+        <td>JSON array of Movie documents</td>
       </tr>
 
       <tr>
@@ -48,7 +167,7 @@
         <td>GET</td>
         <td><code>title</code> (string)</td>
         <td>None</td>
-        <td>JSON object (or text confirmation)</td>
+        <td>JSON Movie document (404 if not found)</td>
       </tr>
 
       <tr>
@@ -57,7 +176,7 @@
         <td>GET</td>
         <td><code>name</code> (string)</td>
         <td>None</td>
-        <td>Text or JSON describing the genre</td>
+        <td>JSON Genre object (from the first matching movie)</td>
       </tr>
 
       <tr>
@@ -66,36 +185,44 @@
         <td>GET</td>
         <td><code>name</code> (string)</td>
         <td>None</td>
-        <td>Text or JSON with director data</td>
+        <td>JSON Director object (from the first matching movie)</td>
       </tr>
 
       <tr>
-        <td>Register a new user</td>
+        <td>Get all users (populated favorites)</td>
+        <td><code>/users</code></td>
+        <td>GET</td>
+        <td>None</td>
+        <td>None</td>
+        <td>JSON array of Users with populated FavoriteMovies</td>
+      </tr>
+
+      <tr>
+        <td>Register user</td>
         <td><code>/users</code></td>
         <td>POST</td>
         <td>None</td>
-        <td>
-<pre>{
-  "Username": "MaxTest",
-  "Password": "SuperSecret123",
-  "Email": "maxtest@example.com",
-  "Birthday": "1985-01-01"
-}</pre>
-        </td>
-        <td>Text confirmation or JSON of created user</td>
+        <td><pre>{
+  "Username": "newuser",
+  "Password": "password123",
+  "Email": "newuser@example.com",
+  "Birthday": "1990-01-01"
+}</pre></td>
+        <td>JSON created User document</td>
       </tr>
 
       <tr>
-        <td>Update user info</td>
+        <td>Update user</td>
         <td><code>/users/:username</code></td>
         <td>PUT</td>
         <td><code>username</code> (string)</td>
-        <td>
-<pre>{
-  "Username": "MaxTestV2"
-}</pre>
-        </td>
-        <td>Text confirmation or JSON of updated user</td>
+        <td><pre>{
+  "Username": "updateduser",
+  "Password": "newpassword",
+  "Email": "updated@example.com",
+  "Birthday": "1991-02-02"
+}</pre></td>
+        <td>JSON updated User document (404 if not found)</td>
       </tr>
 
       <tr>
@@ -104,7 +231,7 @@
         <td>POST</td>
         <td><code>username</code>, <code>movieId</code></td>
         <td>None</td>
-        <td>Text confirmation</td>
+        <td>JSON updated User with populated FavoriteMovies</td>
       </tr>
 
       <tr>
@@ -113,122 +240,74 @@
         <td>DELETE</td>
         <td><code>username</code>, <code>movieId</code></td>
         <td>None</td>
-        <td>Text confirmation</td>
+        <td>JSON updated User with populated FavoriteMovies</td>
       </tr>
 
       <tr>
         <td>Deregister user</td>
         <td><code>/users/:username</code></td>
         <td>DELETE</td>
-        <td><code>username</code></td>
+        <td><code>username</code> (string)</td>
         <td>None</td>
-        <td>Text confirmation</td>
+        <td>Text confirmation (404 if not found)</td>
       </tr>
     </tbody>
   </table>
 
+  <hr />
+
   <h2>Endpoint Details</h2>
 
-  <h3>GET /movies</h3>
-  <ul>
-    <li><strong>Description:</strong> Returns a list of all movies.</li>
-    <li><strong>URL:</strong> <code>/movies</code></li>
-    <li><strong>Method:</strong> GET</li>
-    <li><strong>URL Params:</strong> None</li>
-    <li><strong>Request Body:</strong> None</li>
-    <li><strong>Response Format:</strong> JSON array (or text confirmation)</li>
-  </ul>
-
-  <h3>GET /movies/:title</h3>
-  <ul>
-    <li><strong>Description:</strong> Returns data about a single movie by title.</li>
-    <li><strong>URL:</strong> <code>/movies/:title</code></li>
-    <li><strong>Method:</strong> GET</li>
-    <li><strong>URL Params:</strong> <code>title</code> (string)</li>
-    <li><strong>Request Body:</strong> None</li>
-    <li><strong>Response Format:</strong> JSON object (or text confirmation)</li>
-  </ul>
-
-  <h3>GET /genres/:name</h3>
-  <ul>
-    <li><strong>Description:</strong> Returns data about a genre by name.</li>
-    <li><strong>URL:</strong> <code>/genres/:name</code></li>
-    <li><strong>Method:</strong> GET</li>
-    <li><strong>URL Params:</strong> <code>name</code> (string)</li>
-    <li><strong>Request Body:</strong> None</li>
-    <li><strong>Response Format:</strong> Text or JSON describing the genre</li>
-  </ul>
-
-  <h3>GET /directors/:name</h3>
-  <ul>
-    <li><strong>Description:</strong> Returns data about a director by name.</li>
-    <li><strong>URL:</strong> <code>/directors/:name</code></li>
-    <li><strong>Method:</strong> GET</li>
-    <li><strong>URL Params:</strong> <code>name</code> (string)</li>
-    <li><strong>Request Body:</strong> None</li>
-    <li><strong>Response Format:</strong> Text or JSON with director data</li>
-  </ul>
-
-  <h3>POST /users</h3>
-  <ul>
-    <li><strong>Description:</strong> Registers a new user.</li>
-    <li><strong>URL:</strong> <code>/users</code></li>
-    <li><strong>Method:</strong> POST</li>
-    <li><strong>URL Params:</strong> None</li>
-    <li><strong>Request Body Example:</strong>
-<pre>{
-  "Username": "MaxTestVersion2",
-  "Password": "SuperSecret123",
-  "Email": "maxtest@example.com",
-  "Birthday": "1985-01-01"
+  <h3>GET <code>/health</code> <span class="pill">Implemented</span></h3>
+  <p><strong>Description:</strong> Verifies MongoDB connection status via Mongoose.</p>
+  <p class="muted">This endpoint is provided for development and testing convenience.</p>
+  <p><strong>Response Example:</strong></p>
+  <pre>{
+  "ok": true,
+  "mongoState": 1
 }</pre>
-    </li>
-    <li><strong>Response Format:</strong> Text confirmation or JSON of created user</li>
-  </ul>
 
-  <h3>PUT /users/:username</h3>
-  <ul>
-    <li><strong>Description:</strong> Updates user information for a given username.</li>
-    <li><strong>URL:</strong> <code>/users/:username</code></li>
-    <li><strong>Method:</strong> PUT</li>
-    <li><strong>URL Params:</strong> <code>username</code> (string)</li>
-    <li><strong>Request Body Example:</strong>
-<pre>{
-  "Username": "MaxTestV2"
-}</pre>
-    </li>
-    <li><strong>Response Format:</strong> Text confirmation or JSON of updated user</li>
-  </ul>
+  <h3>GET <code>/movies</code> <span class="pill">Implemented</span></h3>
+  <p><strong>Description:</strong> Returns a list of all movies.</p>
 
-  <h3>POST /users/:username/movies/:movieId</h3>
-  <ul>
-    <li><strong>Description:</strong> Adds a movie to a user’s favorites list.</li>
-    <li><strong>URL:</strong> <code>/users/:username/movies/:movieId</code></li>
-    <li><strong>Method:</strong> POST</li>
-    <li><strong>URL Params:</strong> <code>username</code>, <code>movieId</code></li>
-    <li><strong>Request Body:</strong> None</li>
-    <li><strong>Response Format:</strong> Text confirmation</li>
-  </ul>
+  <h3>GET <code>/movies/:title</code> <span class="pill">Implemented</span></h3>
+  <p><strong>Description:</strong> Returns a single movie by title.</p>
+  <p><strong>Matching:</strong> Case-insensitive exact title match.</p>
 
-  <h3>DELETE /users/:username/movies/:movieId</h3>
-  <ul>
-    <li><strong>Description:</strong> Removes a movie from a user’s favorites list.</li>
-    <li><strong>URL:</strong> <code>/users/:username/movies/:movieId</code></li>
-    <li><strong>Method:</strong> DELETE</li>
-    <li><strong>URL Params:</strong> <code>username</code>, <code>movieId</code></li>
-    <li><strong>Request Body:</strong> None</li>
-    <li><strong>Response Format:</strong> Text confirmation</li>
-  </ul>
+  <h3>GET <code>/genres/:name</code> <span class="pill">Implemented</span></h3>
+  <p><strong>Description:</strong> Returns the embedded <code>Genre</code> object from the first movie matching the provided genre name.</p>
+  <p><strong>Matching:</strong> Case-insensitive exact match on <code>Genre.Name</code>.</p>
 
-  <h3>DELETE /users/:username</h3>
-  <ul>
-    <li><strong>Description:</strong> Deregisters (deletes) a user.</li>
-    <li><strong>URL:</strong> <code>/users/:username</code></li>
-    <li><strong>Method:</strong> DELETE</li>
-    <li><strong>URL Params:</strong> <code>username</code></li>
-    <li><strong>Request Body:</strong> None</li>
-    <li><strong>Response Format:</strong> Text confirmation</li>
-  </ul>
+  <h3>GET <code>/directors/:name</code> <span class="pill">Implemented</span></h3>
+  <p><strong>Description:</strong> Returns the embedded <code>Director</code> object from the first movie matching the provided director name.</p>
+  <p><strong>Matching:</strong> Case-insensitive exact match on <code>Director.Name</code>.</p>
 
+  <h3>GET <code>/users</code> <span class="pill">Implemented</span></h3>
+  <p><strong>Description:</strong> Returns all users with <code>FavoriteMovies</code> populated with Movie documents.</p>
+
+  <h3>POST <code>/users</code> <span class="pill">Implemented</span></h3>
+  <p><strong>Description:</strong> Registers a new user.</p>
+  <p><strong>Notes:</strong> <code>Username</code> and <code>Email</code> must be unique.</p>
+
+  <h3>PUT <code>/users/:username</code> <span class="pill">Implemented</span></h3>
+  <p><strong>Description:</strong> Updates a user (by existing username).</p>
+
+  <h3>POST <code>/users/:username/movies/:movieId</code> <span class="pill">Implemented</span></h3>
+  <p><strong>Description:</strong> Adds a movie ObjectId to <code>FavoriteMovies</code>.</p>
+  <p><strong>Notes:</strong> Uses <code>$addToSet</code> (prevents duplicates) and returns populated favorites.</p>
+
+  <h3>DELETE <code>/users/:username/movies/:movieId</code> <span class="pill">Implemented</span></h3>
+  <p><strong>Description:</strong> Removes a movie ObjectId from <code>FavoriteMovies</code>.</p>
+  <p><strong>Notes:</strong> Uses <code>$pull</code> and returns populated favorites.</p>
+
+  <h3>DELETE <code>/users/:username</code> <span class="pill">Implemented</span></h3>
+  <p><strong>Description:</strong> Deregisters (deletes) a user by username.</p>
+  <p><strong>Response Example:</strong></p>
+  <pre>username was deleted.</pre>
+
+  <hr />
+
+  <h2>Status</h2>
+  <p>✅ Endpoints implemented with Mongoose models and tested locally.</p>
 </body>
 </html>

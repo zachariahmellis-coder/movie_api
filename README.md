@@ -1,117 +1,104 @@
-🎬 Movie API
+# myFlix API
 
-A Node.js REST API built for CareerFoundry – Achievement 2 using Express and PostgreSQL.
+A RESTful API built for CareerFoundry – Achievement 2.7 using Node.js, Express, MongoDB, and Mongoose.
 
-This project demonstrates:
+This API provides endpoints for managing movies, genres, directors, and user accounts, including user favorites.
 
-Express server setup with middleware
-PostgreSQL database integration using a connection pool
-Environment-based configuration
-Secure database access with a least-privilege user
-Health check endpoint for verifying database connectivity
-Graceful server shutdown
+---
 
-This project fulfills the database querying and SQL requirements for CareerFoundry Achievement 2.
+## Tech Stack
 
-🗂 Project Structure
+- Node.js
+- Express
+- MongoDB
+- Mongoose
+- Morgan
+
+---
+
+## Project Structure
+
+```
+
 movie_api/
-├── db.js # PostgreSQL connection pool
 ├── index.js # Express server entry point
-├── schema.sql # Database schema
-├── seed.sql # Sample seed data
-├── public/ # Static files (if applicable)
-├── .env.example # Environment variable template
-├── .gitignore
+├── models.js # Mongoose schemas
+├── db/ # Seed scripts
+├── public/ # Static files (documentation)
 ├── package.json
+├── .gitignore
 └── README.md
 
-⚙️ Requirements
+```
 
-Node.js v18+
+---
 
-PostgreSQL (local installation)
+## Setup Instructions
 
-npm
+### 1. Install dependencies
 
-🚀 Setup Instructions
-1️⃣ Install dependencies
+```bash
 npm install
+```
 
-2️⃣ Environment variables
+### 2. Start MongoDB
 
-Create a .env file using the provided example:
+Ensure MongoDB is running locally on the default port (27017).
 
-cp .env.example .env
+### 3. Start the server
 
-Update .env with your local database credentials:
-
-PORT=3000
-DATABASE_URL=postgres://movie_api_app:YOUR_PASSWORD@localhost:5432/movie_api
-
-⚠️ .env is intentionally ignored by Git and should never be committed.
-
-3️⃣ Database setup
-
-Run the schema and seed files as your dev/admin user (not the app user):
-
-psql -U zachariahmellis -d movie_api -h localhost -p 5432 -f schema.sql
-psql -U zachariahmellis -d movie_api -h localhost -p 5432 -f seed.sql
-
-▶️ Running the Server
-
-Start the API:
-
+```bash
 npm start
+```
 
-You should see:
+Server runs at:
 
-Server running on http://localhost:3000
+```
+http://localhost:3000
+```
 
-✅ Health Check Endpoint
+---
 
-Verify the server and database connection:
+## API Documentation
 
-curl http://localhost:3000/health
+Full API documentation is available at:
 
-Expected response:
+```
+http://localhost:3000/documentation
+```
 
+---
+
+## Health Check
+
+Verify server and database connectivity:
+
+```
+GET /health
+```
+
+Example response:
+
+```json
 {
-"ok": true,
-"db": 1
+  "ok": true,
+  "mongoState": 1
 }
+```
 
-This confirms:
+---
 
-Express is running
-PostgreSQL is connected
-Environment variables are configured correctly
+## Project Status
 
-🔐 Database Security Notes
-The application connects using a least-privilege database user
-Schema changes are run manually via SQL scripts
-The app user cannot create or alter tables
-This mirrors real-world production best practices.
+All required endpoints are implemented and tested locally using Postman against a running MongoDB instance.
 
-🧠 Key Learning Outcomes
-Express routing and middleware
-PostgreSQL connection pooling
-Environment variable management
-Secure database role separation
-Graceful server shutdown handling
-Clean project and Git hygiene
+---
 
-🔮 Future Improvements
-Add full CRUD endpoints for movies
-Add request validation
-Implement centralized error handling
-Add automated tests
-Containerize with Docker
+## CareerFoundry Submission Notes
 
-📂 CareerFoundry Submission Notes
+MongoDB seed data and Postman screenshots are included with the submission, as required by the Achievement 2.7 rubric.
 
-SQL query screenshots and a full PostgreSQL database export are included separately with the project submission, as required by the Achievement rubric.
-
-Note: This project includes both SQL (Exercise 2.6) and MongoDB (Exercise 2.7) artifacts as part of the CareerFoundry curriculum.
+---
 
 Created by: Zachariah M. Ellis
-Evolving with purpose — building a limitless digital life.
+Building a deliberate, location-free digital life.
