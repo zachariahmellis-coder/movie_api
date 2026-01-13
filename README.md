@@ -111,5 +111,7 @@ Containerize with Docker
 
 SQL query screenshots and a full PostgreSQL database export are included separately with the project submission, as required by the Achievement rubric.
 
+Note: This project includes both SQL (Exercise 2.6) and MongoDB (Exercise 2.7) artifacts as part of the CareerFoundry curriculum.
+
 Created by: Zachariah M. Ellis
 Evolving with purpose — building a limitless digital life.
