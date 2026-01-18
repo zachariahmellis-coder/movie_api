@@ -1,42 +1,32 @@
 // auth.js
 const jwt = require("jsonwebtoken");
 const passport = require("passport");
-require("./passport"); // registers strategies
 
 const jwtSecret = process.env.JWT_SECRET || "your_jwt_secret";
 
 const generateJWTToken = (user) =>
   jwt.sign(
-    {
-      _id: user._id,
-      Username: user.Username,
-      Email: user.Email,
-    },
+    { _id: user._id, Username: user.Username, Email: user.Email },
     jwtSecret,
-    {
-      subject: user.Username,
-      expiresIn: "7d",
-      algorithm: "HS256",
-    }
+    { subject: user.Username, expiresIn: "7d", algorithm: "HS256" }
   );
 
 module.exports = (app) => {
-  // app MUST be Express — nothing else
   app.post("/login", (req, res) => {
     passport.authenticate("local", { session: false }, (error, user, info) => {
-      if (error) {
-        console.error("Login error:", error);
-        return res.status(500).json({ message: "Server error" });
-      }
+      if (error) return res.status(500).json({ message: error.message });
+      if (!user) return res.status(400).json({ message: info?.message || "Login failed" });
 
-      if (!user) {
-        return res.status(400).json({
-          message: info?.message || "Incorrect username or password",
-        });
-      }
+      req.login(user, { session: false }, (err) => {
+        if (err) return res.status(500).json({ message: err.message });
 
-      const token = generateJWTToken(user);
-      return res.json({ user, token });
+        const token = generateJWTToken(user);
+        // optional: strip password
+        const userObj = user.toObject ? user.toObject() : user;
+        delete userObj.Password;
+
+        return res.json({ user: userObj, token });
+      });
     })(req, res);
   });
 };
