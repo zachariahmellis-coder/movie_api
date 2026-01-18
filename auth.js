@@ -1,40 +1,51 @@
 // auth.js
-const jwt = require("jsonwebtoken");
-const passport = require("passport");
-require("./passport"); // makes sure strategies are registered
+const jwt = require('jsonwebtoken');
+const passport = require('passport');
+require('./passport'); // register strategies
 
-// MUST match passport.js
-const jwtSecret = process.env.JWT_SECRET || "your_jwt_secret";
+// MUST match passport.js secretOrKey
+const jwtSecret = process.env.JWT_SECRET || 'your_jwt_secret';
 
-function generateJWTToken(user) {
-  // Keep token payload minimal (no hashed password)
-  return jwt.sign(
-    { _id: user._id, Username: user.Username },
+const generateJWTToken = (user) =>
+  jwt.sign(
+    {
+      _id: user._id,
+      Username: user.Username,
+      Email: user.Email,
+    },
     jwtSecret,
     {
       subject: user.Username,
-      expiresIn: "7d",
-      algorithm: "HS256",
+      expiresIn: '7d',
+      algorithm: 'HS256',
     }
   );
-}
 
 module.exports = (app) => {
-  // POST /login
-  app.post("/login", (req, res) => {
-    passport.authenticate("local", { session: false }, (error, user, info) => {
-      if (error || !user) {
-        return res.status(401).json({
-          message: (info && info.message) || "Invalid username or password",
+  app.post('/login', (req, res) => {
+    passport.authenticate('local', { session: false }, (err, user, info) => {
+      if (err) {
+        console.error('Login error:', err);
+        return res.status(500).json({ message: 'Server error during login' });
+      }
+
+      if (!user) {
+        return res.status(400).json({
+          message: (info && info.message) ? info.message : 'Incorrect username or password.',
         });
       }
 
-      req.login(user, { session: false }, (error) => {
-        if (error) return res.status(500).json({ message: "Login error", error });
+      req.login(user, { session: false }, (err) => {
+        if (err) {
+          console.error('req.login error:', err);
+          return res.status(500).json({ message: 'Server error during login' });
+        }
 
         const token = generateJWTToken(user);
-        const userObj = user.toObject();
-        delete userObj.Password; // don't return hashed password
+
+        // Don’t return hashed password
+        const userObj = user.toObject ? user.toObject() : user;
+        delete userObj.Password;
 
         return res.json({ user: userObj, token });
       });
