@@ -1,161 +1,97 @@
-# myFlix API
+myFlix API
 
-A RESTful API built for CareerFoundry – Exercise 2.10 using Node.js, Express,
-MongoDB, and Mongoose.
+A RESTful API built for CareerFoundry Achievement 2.7 using Node.js, Express, MongoDB, and Mongoose.
 
-This API provides endpoints for managing movies, genres, directors, and user
-accounts. JWT-based authentication and authorization are implemented to protect
-selected routes.
+This API provides endpoints for user registration, authentication, and secure access to user data. JWT-based authentication and authorization are implemented to protect sensitive routes.
 
----
+Tech Stack
 
-## Tech Stack
+Node.js
+Express
+MongoDB
+Mongoose
+Passport (Local Strategy and JWT)
+JSON Web Tokens (JWT)
+bcrypt
+Morgan
+CORS
 
-- Node.js
-- Express
-- MongoDB & MongoDB Atlas
-- Mongoose
-- Passport (Local Strategy + JWT)
-- JSON Web Tokens (JWT)
-- bcrypt
-- express-validator
-- Morgan
-- CORS
-- Heroku
-
----
-
-## Project Structure
+Project Structure
 
 movie_api/
-├── index.js Express server entry point
-├── models.js Mongoose schemas and password hashing
-├── auth.js Login and JWT generation
-├── passport.js Passport Local and JWT strategies
-├── public/ Static API documentation
-├── package.json
-├── .gitignore
-└── README.md
+index.js – Express server entry point
+models.js – Mongoose schemas and password hashing
+auth.js – Login route and JWT generation
+passport.js – Passport Local and JWT strategies
+public/ – Static API documentation
+package.json
+.env (not committed)
+README.md
 
----
+Setup Instructions (Local)
 
-## Setup Instructions (Local)
-
-1. Install dependencies
-
+Install dependencies
 npm install
 
-2. Start MongoDB
+Start MongoDB
+Ensure MongoDB is running locally on port 27017
 
-Ensure MongoDB is running locally on the default port (27017).
-
-3. Start the server
-
+Start the server
 npm start
 
-Server runs at:
+The server runs on http://localhost:8080
 
-http://localhost:8080
+Environment Variables
 
----
+Environment variables are used to protect sensitive configuration data.
 
-## Environment Variables
+Example .env file:
 
-The application uses environment variables to protect sensitive credentials.
-
-Example (local development):
-
-MONGO_URI=mongodb://127.0.0.1:27017/myflixDB
+CONNECTION_URI=mongodb://127.0.0.1:27017/myflixDB
 PORT=8080
 
-In production, the MongoDB Atlas connection URI is stored securely using
-Heroku config variables and is not committed to the repository.
+Authentication and Security
 
----
+Password Hashing
+All user passwords are hashed using bcrypt before being stored. Plain-text passwords are never saved in the database.
 
-## Authentication & Security
+Authentication
+Users authenticate via the /login endpoint. A successful login returns a JSON Web Token (JWT).
 
-- Passwords are hashed using bcrypt for both registration and login
-- JWT-based authentication is used
-- Protected routes require a valid Bearer token
-- Unauthorized requests are rejected
+Authorization
+Protected routes require a valid JWT passed as a Bearer token. Users can only access or modify their own account data.
 
----
+Key Endpoints
 
-## Authentication Endpoint
-
-### Login (returns JWT)
+POST /users
+Registers a new user with validation for username, password, and email.
 
 POST /login
+Authenticates a user and returns a JWT.
 
-Body (JSON):
-{
-"Username": "testuser",
-"Password": "password123"
-}
+GET /users/:Username
+Protected route that returns user data when a valid JWT is provided.
 
-Response includes a JWT token used to access protected routes.
+CORS
 
----
+CORS is enabled globally, allowing requests from all domains.
 
-## Protected Routes
+Testing
 
-The following routes require a valid JWT passed as a Bearer Token:
+All endpoints were tested using Postman and curl. Testing includes validation errors, successful user creation, password hashing verification, JWT issuance on login, and authorized access to protected routes. Screenshots are included with the submission.
 
-- GET /users/:Username
-- PUT /users/:Username
-- POST /users/:Username/movies/:MovieID
-- DELETE /users/:Username/movies/:MovieID
-- DELETE /users/:Username
+Deployment
 
-Authorization checks ensure that users can only access or modify their own
-accounts. Unauthorized users cannot make changes.
+The API is deployed to Heroku and connected to a MongoDB Atlas database using environment variables.
 
----
+Live API URL:
+https://cryptic-lowlands-83913-a6a2dd7d9144.herokuapp.com
 
-## Data Validation
+Project Status
 
-- express-validator is used on all data-receiving endpoints
-- Invalid input returns appropriate 422 errors
-- Validation is enforced for usernames, passwords, and email formats
+All requirements for CareerFoundry Achievement 2.7 have been implemented, tested, and deployed.
 
----
+Author
 
-## CORS
-
-CORS is enabled to allow requests from all domains, supporting front-end
-integration and external testing tools.
-
----
-
-## Deployment
-
-- API deployed on Heroku
-- Database hosted on MongoDB Atlas
-- Environment variables used to integrate production services securely
-
-Live deployment successfully connects Heroku to MongoDB Atlas.
-
----
-
-## Testing
-
-All endpoints were tested using Postman and curl:
-
-- Public routes tested without authentication
-- Protected routes tested with and without JWT
-- Authorization failures return 401 or 403 as expected
-
-Screenshots are included with the submission to demonstrate functionality.
-
----
-
-## Project Status
-
-All required functionality for Exercise 2.10 has been implemented, tested,
-and deployed in accordance with the CareerFoundry rubric.
-
----
-
-Created by: Zachariah M. Ellis  
-Building a deliberate, location-free digital life.
+Zachariah M. Ellis
+CareerFoundry Software Engineering Student
