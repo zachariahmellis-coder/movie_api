@@ -9,6 +9,11 @@ const Models = require("./models.js");
 const Movies = Models.Movie;
 const Users = Models.User;
 
+const passport = require("passport");
+require("./passport");          // registers strategies
+require("./auth")(express);     // <-- DO NOT do this (leads to weird issues)
+// ✅ Correct: require auth after app exists (see below)
+
 const app = express();
 
 // Middleware
@@ -16,7 +21,7 @@ app.use(morgan("common"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// CORS
+// CORS (all origins)
 app.use(cors());
 
 // MongoDB connection (Heroku uses CONNECTION_URI)
@@ -28,9 +33,7 @@ mongoose
   .then(() => console.log("✅ MongoDB connected"))
   .catch((err) => console.error("❌ MongoDB connection error:", err));
 
-// Auth + Passport
-require("./passport"); // registers strategies
-const passport = require("passport");
+// ✅ Register /login route
 require("./auth")(app);
 
 // Home
@@ -38,27 +41,38 @@ app.get("/", (req, res) => {
   res.send("Welcome to myFlix API!");
 });
 
-// ✅ GET /users/:Username (protected)
+/**
+ * ✅ GET /users/:Username (protected)
+ * Optional “self-only” guard included.
+ */
 app.get(
   "/users/:Username",
   passport.authenticate("jwt", { session: false }),
   async (req, res) => {
     try {
-      const user = await Users.findOne({ Username: req.params.Username });
+      // Optional: only let users access their own record
+      if (req.user.Username !== req.params.Username) {
+        return res
+          .status(403)
+          .json({ message: "You can only access your own user data." });
+      }
+
+      const user = await Users.findOne({ Username: req.params.Username })
+        .select("-Password -__v");
+
       if (!user) return res.status(404).json({ message: "User not found" });
 
-      const userObj = user.toObject();
-      delete userObj.Password;
-
-      return res.json(userObj);
+      return res.json(user);
     } catch (err) {
       console.error(err);
-      return res.status(500).send("Error: " + err);
+      return res.status(500).json({ message: "Error: " + err });
     }
   }
 );
 
-// ✅ POST /users (create user) with hashing + validation
+/**
+ * ✅ POST /users (create user) with hashing + validation
+ */
 app.post(
   "/users",
   [
@@ -72,13 +86,15 @@ app.post(
   ],
   async (req, res) => {
     const errors = validationResult(req);
-    if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
+    if (!errors.isEmpty())
+      return res.status(422).json({ errors: errors.array() });
 
     try {
       const hashedPassword = Users.hashPassword(req.body.Password);
 
       const existingUser = await Users.findOne({ Username: req.body.Username });
-      if (existingUser) return res.status(400).send(req.body.Username + " already exists");
+      if (existingUser)
+        return res.status(400).send(req.body.Username + " already exists");
 
       const newUser = await Users.create({
         Username: req.body.Username,
@@ -89,6 +105,7 @@ app.post(
 
       const userObj = newUser.toObject();
       delete userObj.Password;
+      delete userObj.__v;
 
       return res.status(201).json(userObj);
     } catch (err) {
@@ -98,7 +115,9 @@ app.post(
   }
 );
 
-// ✅ PUT /users/:Username (protected) with validation + optional password hashing
+/**
+ * ✅ PUT /users/:Username (protected) with validation + optional password hashing
+ */
 app.put(
   "/users/:Username",
   [
@@ -117,9 +136,17 @@ app.put(
   passport.authenticate("jwt", { session: false }),
   async (req, res) => {
     const errors = validationResult(req);
-    if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
+    if (!errors.isEmpty())
+      return res.status(422).json({ errors: errors.array() });
 
     try {
+      // Optional: only let users update themselves
+      if (req.user.Username !== req.params.Username) {
+        return res
+          .status(403)
+          .json({ message: "You can only update your own user data." });
+      }
+
       const update = { ...req.body };
 
       if (update.Password) {
@@ -132,10 +159,12 @@ app.put(
         { new: true }
       );
 
-      if (!updatedUser) return res.status(404).json({ message: "User not found" });
+      if (!updatedUser)
+        return res.status(404).json({ message: "User not found" });
 
       const userObj = updatedUser.toObject();
       delete userObj.Password;
+      delete userObj.__v;
 
       return res.json(userObj);
     } catch (err) {
@@ -145,6 +174,6 @@ app.put(
   }
 );
 
-// Heroku-safe port
+// ✅ Heroku-safe port
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`Listening on port ${port}`));
