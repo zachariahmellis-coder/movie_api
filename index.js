@@ -6,42 +6,34 @@ const cors = require("cors");
 const { check, validationResult } = require("express-validator");
 
 const Models = require("./models.js");
-const Movies = Models.Movie; // (unused here but kept for your future routes)
+const Movies = Models.Movie;
 const Users = Models.User;
 
 const app = express();
 
-// -------------------
 // Middleware
-// -------------------
 app.use(morgan("common"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Allow all origins (CareerFoundry usually accepts this for the assignment)
+// CORS
 app.use(cors());
 
-// -------------------
-// MongoDB Connection
-// -------------------
+// MongoDB connection (Heroku uses CONNECTION_URI)
 const connectionUri =
-  process.env.CONNECTION_URI || "mongodb://localhost:27017/myFlixDB";
+  process.env.CONNECTION_URI || "mongodb://localhost:27017/myflixDB";
 
 mongoose
   .connect(connectionUri)
   .then(() => console.log("✅ MongoDB connected"))
   .catch((err) => console.error("❌ MongoDB connection error:", err));
 
-// -------------------
-// Auth / Passport
-// -------------------
+// Auth + Passport
 require("./passport"); // registers strategies
 const passport = require("passport");
-require("./auth")(app); // adds /login route
+require("./auth")(app);
 
-// -------------------
-// Routes
-// -------------------
+// Home
 app.get("/", (req, res) => {
   res.send("Welcome to myFlix API!");
 });
@@ -55,7 +47,6 @@ app.get(
       const user = await Users.findOne({ Username: req.params.Username });
       if (!user) return res.status(404).json({ message: "User not found" });
 
-      // don't return hashed password
       const userObj = user.toObject();
       delete userObj.Password;
 
@@ -67,7 +58,7 @@ app.get(
   }
 );
 
-// ✅ POST /users (create user) with validation + hashing
+// ✅ POST /users (create user) with hashing + validation
 app.post(
   "/users",
   [
@@ -81,15 +72,13 @@ app.post(
   ],
   async (req, res) => {
     const errors = validationResult(req);
-    if (!errors.isEmpty())
-      return res.status(422).json({ errors: errors.array() });
+    if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
 
     try {
       const hashedPassword = Users.hashPassword(req.body.Password);
 
       const existingUser = await Users.findOne({ Username: req.body.Username });
-      if (existingUser)
-        return res.status(400).send(req.body.Username + " already exists");
+      if (existingUser) return res.status(400).send(req.body.Username + " already exists");
 
       const newUser = await Users.create({
         Username: req.body.Username,
@@ -98,7 +87,6 @@ app.post(
         Birthday: req.body.Birthday,
       });
 
-      // optional: don't return hashed password
       const userObj = newUser.toObject();
       delete userObj.Password;
 
@@ -110,7 +98,7 @@ app.post(
   }
 );
 
-// ✅ PUT /users/:Username (update user) protected + validation (+ hash if password is being changed)
+// ✅ PUT /users/:Username (protected) with validation + optional password hashing
 app.put(
   "/users/:Username",
   [
@@ -129,13 +117,11 @@ app.put(
   passport.authenticate("jwt", { session: false }),
   async (req, res) => {
     const errors = validationResult(req);
-    if (!errors.isEmpty())
-      return res.status(422).json({ errors: errors.array() });
+    if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
 
     try {
       const update = { ...req.body };
 
-      // If they sent a Password, hash it before saving
       if (update.Password) {
         update.Password = Users.hashPassword(update.Password);
       }
@@ -146,10 +132,8 @@ app.put(
         { new: true }
       );
 
-      if (!updatedUser)
-        return res.status(404).json({ message: "User not found" });
+      if (!updatedUser) return res.status(404).json({ message: "User not found" });
 
-      // optional: don't return hashed password
       const userObj = updatedUser.toObject();
       delete userObj.Password;
 
@@ -161,11 +145,6 @@ app.put(
   }
 );
 
-// -------------------
-// Start server (Heroku-safe)
-// -------------------
+// Heroku-safe port
 const port = process.env.PORT || 8080;
-
-app.listen(port, () => {
-  console.log(`Listening on port ${port}`);
-});
+app.listen(port, () => console.log(`Listening on port ${port}`));

@@ -1,54 +1,43 @@
-// passport.js
-const passport = require('passport');
-const LocalStrategy = require('passport-local').Strategy;
-const JWTStrategy = require('passport-jwt').Strategy;
-const ExtractJWT = require('passport-jwt').ExtractJwt;
+// auth.js
+const jwt = require("jsonwebtoken");
+const passport = require("passport");
+require("./passport"); // makes sure strategies are registered
 
-const Models = require('./models.js');
-const Users = Models.User;
+// MUST match passport.js
+const jwtSecret = process.env.JWT_SECRET || "your_jwt_secret";
 
-passport.use(
-  new LocalStrategy(
+function generateJWTToken(user) {
+  // Keep token payload minimal (no hashed password)
+  return jwt.sign(
+    { _id: user._id, Username: user.Username },
+    jwtSecret,
     {
-      usernameField: 'Username',
-      passwordField: 'Password',
-    },
-    async (username, password, callback) => {
-      try {
-        const user = await Users.findOne({ Username: username });
-        if (!user) {
-          return callback(null, false, { message: 'Incorrect username or password.' });
-        }
-
-        // ✅ THIS is the hashing comparison
-        if (!user.validatePassword(password)) {
-          return callback(null, false, { message: 'Incorrect password.' });
-        }
-
-        return callback(null, user);
-      } catch (err) {
-        return callback(err);
-      }
+      subject: user.Username,
+      expiresIn: "7d",
+      algorithm: "HS256",
     }
-  )
-);
+  );
+}
 
-// JWT Strategy (typical CareerFoundry setup)
-passport.use(
-  new JWTStrategy(
-    {
-      jwtFromRequest: ExtractJWT.fromAuthHeaderAsBearerToken(),
-      secretOrKey: process.env.JWT_SECRET || 'your_jwt_secret', // ideally env var
-    },
-    async (jwtPayload, callback) => {
-      try {
-        const user = await Users.findById(jwtPayload._id);
-        return callback(null, user);
-      } catch (err) {
-        return callback(err, false);
+module.exports = (app) => {
+  // POST /login
+  app.post("/login", (req, res) => {
+    passport.authenticate("local", { session: false }, (error, user, info) => {
+      if (error || !user) {
+        return res.status(401).json({
+          message: (info && info.message) || "Invalid username or password",
+        });
       }
-    }
-  )
-);
 
-module.exports = passport;
+      req.login(user, { session: false }, (error) => {
+        if (error) return res.status(500).json({ message: "Login error", error });
+
+        const token = generateJWTToken(user);
+        const userObj = user.toObject();
+        delete userObj.Password; // don't return hashed password
+
+        return res.json({ user: userObj, token });
+      });
+    })(req, res);
+  });
+};

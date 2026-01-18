@@ -1,33 +1,42 @@
-// auth.js (CommonJS version)
-const jwt = require('jsonwebtoken');
-const passport = require('passport');
-require('./passport');
+// auth.js
+const jwt = require("jsonwebtoken");
+const passport = require("passport");
+require("./passport"); // makes sure strategies are registered
 
-const jwtSecret = 'your_jwt_secret'; // must match passport.js
+// MUST match passport.js
+const jwtSecret = process.env.JWT_SECRET || "your_jwt_secret";
 
-const generateJWTToken = (user) => {
-  return jwt.sign(user, jwtSecret, {
-    subject: user.Username,
-    expiresIn: '7d',
-    algorithm: 'HS256'
-  });
-};
+function generateJWTToken(user) {
+  // Keep token payload minimal (no hashed password)
+  return jwt.sign(
+    { _id: user._id, Username: user.Username },
+    jwtSecret,
+    {
+      subject: user.Username,
+      expiresIn: "7d",
+      algorithm: "HS256",
+    }
+  );
+}
 
 module.exports = (app) => {
-  app.post('/login', (req, res) => {
-    passport.authenticate('local', { session: false }, (error, user) => {
+  // POST /login
+  app.post("/login", (req, res) => {
+    passport.authenticate("local", { session: false }, (error, user, info) => {
       if (error || !user) {
         return res.status(401).json({
-          message: 'Invalid username or password'
+          message: (info && info.message) || "Invalid username or password",
         });
       }
 
-      req.login(user, { session: false }, (err) => {
-        if (err) {
-          return res.status(500).send(err);
-        }
-        const token = generateJWTToken(user.toJSON());
-        return res.json({ user, token });
+      req.login(user, { session: false }, (error) => {
+        if (error) return res.status(500).json({ message: "Login error", error });
+
+        const token = generateJWTToken(user);
+        const userObj = user.toObject();
+        delete userObj.Password; // don't return hashed password
+
+        return res.json({ user: userObj, token });
       });
     })(req, res);
   });
