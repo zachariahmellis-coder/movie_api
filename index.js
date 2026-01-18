@@ -1,277 +1,117 @@
-// index.js (ESM) — FULL DROP-IN (Exercise 2.9 ready)
-import express from "express";
-import morgan from "morgan";
-import mongoose from "mongoose";
-import passport from "passport";
+// index.js
+const express = require('express');
+const morgan = require('morgan');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const { check, validationResult } = require('express-validator');
 
-import { Movie, User } from "./models.js";
-import "./passport.js";       // registers Local + JWT strategies
-import auth from "./auth.js"; // mounts POST /login
+const Models = require('./models.js');
+const Movies = Models.Movie;
+const Users = Models.User;
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 
-// --------------------
 // Middleware
-// --------------------
-app.use(morgan("common"));
+app.use(morgan('common'));
 app.use(express.json());
-app.use(express.urlencoded({ extended: true })); // important for Postman form params
-app.use(express.static("public"));
+app.use(express.urlencoded({ extended: true }));
 
-// Mount /login
-auth(app);
+// ✅ Step 1: CORS (allow ALL domains)
+app.use(cors());
 
-// JWT middleware shortcut
-const requireJWT = passport.authenticate("jwt", { session: false });
+// ✅ MongoDB connection via env var (Heroku Config Var: CONNECTION_URI)
+// Local fallback optional (nice for dev)
+const connectionUri = process.env.CONNECTION_URI || 'mongodb://localhost:27017/myFlixDB';
 
-// --------------------
-// Public routes
-// --------------------
-app.get("/documentation", (req, res) => res.redirect("/documentation.html"));
+mongoose.connect(
+  process.env.CONNECTION_URI || 'mongodb://localhost:27017/myflixDB'
+);
 
-app.get("/health", (req, res) => {
-  const state = mongoose.connection.readyState; // 1 = connected
-  res.json({ ok: state === 1, mongoState: state });
+// Auth
+let auth = require('./auth')(app);
+const passport = require('passport');
+require('./passport');
+
+app.get('/', (req, res) => {
+  res.send('Welcome to myFlix API!');
 });
 
-app.get("/", (req, res) => {
-  res.send("myFlix API is running ✅");
-});
+// ✅ Step 2 + 3: POST /users with hashing + validation
+app.post(
+  '/users',
+  [
+    check('Username', 'Username is required').isLength({ min: 5 }),
+    check('Username', 'Username contains non-alphanumeric characters - not allowed.').isAlphanumeric(),
+    check('Password', 'Password is required').not().isEmpty(),
+    check('Email', 'Email does not appear to be valid').isEmail(),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
 
-// --------------------
-// MongoDB Connection
-// --------------------
-const MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/myflixDB";
+    try {
+      const hashedPassword = Users.hashPassword(req.body.Password);
 
-await mongoose
-  .connect(MONGO_URI)
-  .then(() => console.log("✅ Connected to MongoDB"))
-  .catch((err) => {
-    console.error("❌ MongoDB connection error:", err);
-    process.exit(1);
-  });
+      const existingUser = await Users.findOne({ Username: req.body.Username });
+      if (existingUser) return res.status(400).send(req.body.Username + ' already exists');
 
-// --------------------
-// MOVIES (PROTECTED)
-// --------------------
+      const newUser = await Users.create({
+        Username: req.body.Username,
+        Password: hashedPassword,
+        Email: req.body.Email,
+        Birthday: req.body.Birthday,
+      });
 
-// Get all movies
-app.get("/movies", requireJWT, async (req, res) => {
-  try {
-    const movies = await Movie.find();
-    res.json(movies);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Error: " + err);
-  }
-});
-
-// Get movie by title (case-insensitive exact match)
-app.get("/movies/:title", requireJWT, async (req, res) => {
-  try {
-    const movie = await Movie.findOne({
-      Title: { $regex: `^${req.params.title}$`, $options: "i" },
-    });
-
-    if (!movie) return res.status(404).send("Movie not found");
-    res.json(movie);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Error: " + err);
-  }
-});
-
-// Get genre by name (case-insensitive exact match)
-app.get("/genres/:name", requireJWT, async (req, res) => {
-  try {
-    const movie = await Movie.findOne({
-      "Genre.Name": { $regex: `^${req.params.name}$`, $options: "i" },
-    });
-
-    if (!movie) return res.status(404).send("Genre not found");
-    res.json(movie.Genre);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Error: " + err);
-  }
-});
-
-// Get director by name (case-insensitive exact match)
-app.get("/directors/:name", requireJWT, async (req, res) => {
-  try {
-    const movie = await Movie.findOne({
-      "Director.Name": { $regex: `^${req.params.name}$`, $options: "i" },
-    });
-
-    if (!movie) return res.status(404).send("Director not found");
-    res.json(movie.Director);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Error: " + err);
-  }
-});
-
-// --------------------
-// USERS
-// --------------------
-
-// Register a new user (PUBLIC — do not protect, or nobody can sign up)
-app.post("/users", async (req, res) => {
-  try {
-    const existingUser = await User.findOne({ Username: req.body.Username });
-    if (existingUser) return res.status(400).send(req.body.Username + " already exists");
-
-    const newUser = await User.create({
-      Username: req.body.Username,
-      Password: req.body.Password,
-      Email: req.body.Email,
-      Birthday: req.body.Birthday,
-    });
-
-    res.status(201).json(newUser);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Error: " + err);
-  }
-});
-
-// Get all users (PROTECTED)
-app.get("/users", requireJWT, async (req, res) => {
-  try {
-    const users = await User.find().populate("FavoriteMovies");
-    res.json(users);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Error: " + err);
-  }
-});
-
-// Get ONE user (PROTECTED + authz check)
-app.get("/users/:username", requireJWT, async (req, res) => {
-  try {
-    if (req.user.Username !== req.params.username) {
-      return res.status(403).send("Permission denied");
+      return res.status(201).json(newUser);
+    } catch (err) {
+      console.error(err);
+      return res.status(500).send('Error: ' + err);
     }
-
-    const user = await User.findOne({ Username: req.params.username }).populate("FavoriteMovies");
-    if (!user) return res.status(404).send("User not found");
-
-    res.json(user);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Error: " + err);
   }
-});
+);
 
-// Update user (PROTECTED + authz check)
-app.put("/users/:username", requireJWT, async (req, res) => {
-  try {
-    // Must be updating yourself
-    if (req.user.Username !== req.params.username) {
-      return res.status(403).send("Permission denied");
+// ✅ Step 3: PUT /users/:Username with validation (+ hash if password is being changed)
+app.put(
+  '/users/:Username',
+  [
+    check('Username', 'Username must be at least 5 characters long').optional().isLength({ min: 5 }),
+    check('Username', 'Username contains non-alphanumeric characters - not allowed.').optional().isAlphanumeric(),
+    check('Password', 'Password is required').optional().not().isEmpty(),
+    check('Email', 'Email does not appear to be valid').optional().isEmail(),
+  ],
+  passport.authenticate('jwt', { session: false }),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
+
+    try {
+      const update = { ...req.body };
+
+      // If they sent a Password, hash it before saving
+      if (update.Password) {
+        update.Password = Users.hashPassword(update.Password);
+      }
+
+      const updatedUser = await Users.findOneAndUpdate(
+        { Username: req.params.Username },
+        { $set: update },
+        { new: true }
+      );
+
+      return res.json(updatedUser);
+    } catch (err) {
+      console.error(err);
+      return res.status(500).send('Error: ' + err);
     }
-
-    // Optional safety: prevent changing Username via body (keeps auth simple)
-    if (req.body.Username && req.body.Username !== req.params.username) {
-      return res.status(400).send("Username changes not allowed");
-    }
-
-    const updatedUser = await User.findOneAndUpdate(
-      { Username: req.params.username },
-      {
-        $set: {
-          // Keep Username stable; update other fields
-          Password: req.body.Password,
-          Email: req.body.Email,
-          Birthday: req.body.Birthday,
-        },
-      },
-      { new: true }
-    );
-
-    if (!updatedUser) return res.status(404).send("User not found");
-    res.json(updatedUser);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Error: " + err);
   }
+);
+
+// (Your other routes go here)
+
+// ✅ Heroku-safe port
+const port = process.env.PORT || 8080;
+
+app.listen(port, () => {
+  console.log(`Listening on port ${port}`);
 });
 
-// Add favorite movie (PROTECTED + authz check)
-app.post("/users/:username/movies/:movieId", requireJWT, async (req, res) => {
-  try {
-    if (req.user.Username !== req.params.username) {
-      return res.status(403).send("Permission denied");
-    }
-
-    const updatedUser = await User.findOneAndUpdate(
-      { Username: req.params.username },
-      { $addToSet: { FavoriteMovies: req.params.movieId } },
-      { new: true }
-    ).populate("FavoriteMovies");
-
-    if (!updatedUser) return res.status(404).send("User not found");
-    res.json(updatedUser);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Error: " + err);
-  }
-});
-
-// Remove favorite movie (PROTECTED + authz check)
-app.delete("/users/:username/movies/:movieId", requireJWT, async (req, res) => {
-  try {
-    if (req.user.Username !== req.params.username) {
-      return res.status(403).send("Permission denied");
-    }
-
-    const updatedUser = await User.findOneAndUpdate(
-      { Username: req.params.username },
-      { $pull: { FavoriteMovies: req.params.movieId } },
-      { new: true }
-    ).populate("FavoriteMovies");
-
-    if (!updatedUser) return res.status(404).send("User not found");
-    res.json(updatedUser);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Error: " + err);
-  }
-});
-
-// Delete user (PROTECTED + authz check)
-app.delete("/users/:username", requireJWT, async (req, res) => {
-  try {
-    if (req.user.Username !== req.params.username) {
-      return res.status(403).send("Permission denied");
-    }
-
-    const deletedUser = await User.findOneAndDelete({ Username: req.params.username });
-    if (!deletedUser) return res.status(404).send("User not found");
-
-    res.send(req.params.username + " was deleted.");
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Error: " + err);
-  }
-});
-
-// --------------------
-// Start Server
-// --------------------
-const server = app.listen(PORT, () => {
-  console.log(`🚀 Server running at http://localhost:${PORT}`);
-});
-
-// --------------------
-// Graceful Shutdown
-// --------------------
-const shutdown = async () => {
-  console.log("\nShutting down server...");
-  await mongoose.connection.close();
-  server.close(() => process.exit(0));
-};
-
-process.on("SIGINT", shutdown);
-process.on("SIGTERM", shutdown);

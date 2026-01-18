@@ -1,45 +1,54 @@
-import passport from "passport";
-import { Strategy as LocalStrategy } from "passport-local";
-import passportJWT from "passport-jwt";
-import { User } from "./models.js";
+// passport.js
+const passport = require('passport');
+const LocalStrategy = require('passport-local').Strategy;
+const JWTStrategy = require('passport-jwt').Strategy;
+const ExtractJWT = require('passport-jwt').ExtractJwt;
 
-const JWTStrategy = passportJWT.Strategy;
-const ExtractJWT = passportJWT.ExtractJwt;
+const Models = require('./models.js');
+const Users = Models.User;
 
 passport.use(
   new LocalStrategy(
     {
-      usernameField: "Username",
-      passwordField: "Password",
+      usernameField: 'Username',
+      passwordField: 'Password',
     },
-    async (username, password, done) => {
+    async (username, password, callback) => {
       try {
-        const user = await User.findOne({ Username: username });
+        const user = await Users.findOne({ Username: username });
         if (!user) {
-          return done(null, false, { message: "Incorrect username or password." });
+          return callback(null, false, { message: 'Incorrect username or password.' });
         }
-        // Password validation comes next exercise (hashing)
-        return done(null, user);
+
+        // ✅ THIS is the hashing comparison
+        if (!user.validatePassword(password)) {
+          return callback(null, false, { message: 'Incorrect password.' });
+        }
+
+        return callback(null, user);
       } catch (err) {
-        return done(err);
+        return callback(err);
       }
     }
   )
 );
 
+// JWT Strategy (typical CareerFoundry setup)
 passport.use(
   new JWTStrategy(
     {
       jwtFromRequest: ExtractJWT.fromAuthHeaderAsBearerToken(),
-      secretOrKey: "your_jwt_secret",
+      secretOrKey: process.env.JWT_SECRET || 'your_jwt_secret', // ideally env var
     },
-    async (jwtPayload, done) => {
+    async (jwtPayload, callback) => {
       try {
-        const user = await User.findById(jwtPayload._id);
-        return done(null, user);
+        const user = await Users.findById(jwtPayload._id);
+        return callback(null, user);
       } catch (err) {
-        return done(err);
+        return callback(err, false);
       }
     }
   )
 );
+
+module.exports = passport;

@@ -1,39 +1,45 @@
 // models.js
-import mongoose from "mongoose";
+const mongoose = require('mongoose');
+const bcrypt = require('bcrypt');
 
-const movieSchema = new mongoose.Schema(
-  {
-    Title: { type: String, required: true },
-    Description: { type: String, required: true },
-    Genre: {
-      Name: { type: String, required: true },
-      Description: { type: String, required: true },
-    },
-    Director: {
-      Name: { type: String, required: true },
-      Bio: { type: String, required: true },
-      Birth: { type: String },
-      Death: { type: String },
-    },
-    ImagePath: { type: String, required: true },
-    Featured: { type: Boolean, default: false },
-    Actors: [{ type: String }],
-    ReleaseYear: { type: Number },
-    Rating: { type: String },
+let movieSchema = mongoose.Schema({
+  Title: { type: String, required: true },
+  Description: { type: String, required: true },
+  Genre: {
+    Name: String,
+    Description: String,
   },
-  { timestamps: true }
-);
-
-const userSchema = new mongoose.Schema(
-  {
-    Username: { type: String, required: true, unique: true },
-    Password: { type: String, required: true }, // later you’ll hash this
-    Email: { type: String, required: true, unique: true },
-    Birthday: { type: Date },
-    FavoriteMovies: [{ type: mongoose.Schema.Types.ObjectId, ref: "Movie" }],
+  Director: {
+    Name: String,
+    Bio: String,
+    Birth: String,
+    Death: String,
   },
-  { timestamps: true }
-);
+  ImagePath: String,
+  Featured: Boolean,
+});
 
-export const Movie = mongoose.model("Movie", movieSchema);
-export const User = mongoose.model("User", userSchema);
+let userSchema = mongoose.Schema({
+  Username: { type: String, required: true },
+  Password: { type: String, required: true }, // stored hashed
+  Email: { type: String, required: true },
+  Birthday: Date,
+  FavoriteMovies: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Movie' }],
+});
+
+// ✅ Hash password when creating/updating
+userSchema.statics.hashPassword = (password) => {
+  return bcrypt.hashSync(password, 10);
+};
+
+// ✅ Compare login password
+// IMPORTANT: not an arrow function
+userSchema.methods.validatePassword = function (password) {
+  return bcrypt.compareSync(password, this.Password);
+};
+
+let Movie = mongoose.model('Movie', movieSchema);
+let User = mongoose.model('User', userSchema);
+
+module.exports.Movie = Movie;
+module.exports.User = User;
