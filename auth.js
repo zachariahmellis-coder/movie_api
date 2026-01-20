@@ -21,7 +21,6 @@ const generateJWTToken = (user) =>
   );
 
 module.exports = (app) => {
-  // app MUST be Express — nothing else
   app.post("/login", (req, res) => {
     passport.authenticate("local", { session: false }, (error, user, info) => {
       if (error) {
@@ -35,8 +34,26 @@ module.exports = (app) => {
         });
       }
 
-      const token = generateJWTToken(user);
-      return res.json({ user, token });
+      // Passport best-practice: establish login context (without sessions)
+      req.login(user, { session: false }, (err) => {
+        if (err) {
+          console.error("req.login error:", err);
+          return res.status(500).json({ message: "Login failed" });
+        }
+
+        const token = generateJWTToken(user);
+
+        // IMPORTANT: Never return hashed passwords (or internal fields)
+        const safeUser = {
+          _id: user._id,
+          Username: user.Username,
+          Email: user.Email,
+          Birthday: user.Birthday,
+          FavoriteMovies: user.FavoriteMovies,
+        };
+
+        return res.json({ user: safeUser, token });
+      });
     })(req, res);
   });
 };
