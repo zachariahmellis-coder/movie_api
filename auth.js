@@ -20,12 +20,25 @@ module.exports = (app) => {
       req.login(user, { session: false }, (err) => {
         if (err) return res.status(500).json({ message: err.message });
 
-        const token = generateJWTToken(user);
-        // optional: strip password
-        const userObj = user.toObject ? user.toObject() : user;
-        delete userObj.Password;
+      // Passport best-practice: establish login context (without sessions)
+      req.login(user, { session: false }, (err) => {
+        if (err) {
+          console.error("req.login error:", err);
+          return res.status(500).json({ message: "Login failed" });
+        }
 
-        return res.json({ user: userObj, token });
+        const token = generateJWTToken(user);
+
+        // IMPORTANT: Never return hashed passwords (or internal fields)
+        const safeUser = {
+          _id: user._id,
+          Username: user.Username,
+          Email: user.Email,
+          Birthday: user.Birthday,
+          FavoriteMovies: user.FavoriteMovies,
+        };
+
+        return res.json({ user: safeUser, token });
       });
     })(req, res);
   });

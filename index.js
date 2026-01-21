@@ -7,6 +7,7 @@ const passport = require("passport");
 
 const Models = require("./models");
 const Users = Models.User;
+const Movies = Models.Movie;
 
 const app = express();
 
@@ -85,6 +86,190 @@ app.post(
     }
   }
 );
+
+// ==============================
+// MOVIE ENDPOINTS
+// ==============================
+
+// Get all movies
+app.get("/movies", async (req, res) => {
+  const movies = await Movies.find();
+  return res.status(201).json(movies);
+});
+
+// Get a movie by title
+app.get(
+  "/movies/:Title",
+  passport.authenticate("jwt", { session: false }),
+  async (req, res) => {
+    try {
+      const movie = await Movies.findOne({ Title: req.params.Title });
+      if (!movie) return res.status(404).json({ message: "Movie not found" });
+      return res.json(movie);
+    } catch (err) {
+      return res.status(500).json({ message: err.message });
+    }
+  }
+);
+
+// Get genre info by genre name
+app.get(
+  "/movies/genres/:Name",
+  passport.authenticate("jwt", { session: false }),
+  async (req, res) => {
+    try {
+      const movie = await Movies.findOne({ "Genre.Name": req.params.Name });
+      if (!movie)
+        return res.status(404).json({ message: "Genre not found" });
+
+      return res.json(movie.Genre);
+    } catch (err) {
+      return res.status(500).json({ message: err.message });
+    }
+  }
+);
+
+// Get director info by director name
+app.get(
+  "/movies/directors/:Name",
+  passport.authenticate("jwt", { session: false }),
+  async (req, res) => {
+    try {
+      const movie = await Movies.findOne({ "Director.Name": req.params.Name });
+      if (!movie)
+        return res.status(404).json({ message: "Director not found" });
+
+      return res.json(movie.Director);
+    } catch (err) {
+      return res.status(500).json({ message: err.message });
+    }
+  }
+);
+
+// =======================================
+// USER UPDATE + FAVORITES
+// =======================================
+
+// Update user (hash password if provided)
+app.put(
+  "/users/:Username",
+  passport.authenticate("jwt", { session: false }),
+  [
+    check("Username").optional().isLength({ min: 5 }).isAlphanumeric(),
+    check("Password").optional().not().isEmpty(),
+    check("Email").optional().isEmail(),
+  ],
+  async (req, res) => {
+    // Only allow users to update their own account (basic safety)
+    if (req.user.Username !== req.params.Username) {
+      return res.status(403).json({ message: "Permission denied" });
+    }
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty())
+      return res.status(422).json({ errors: errors.array() });
+
+    try {
+      const update = { ...req.body };
+
+      // Hash password if it's being updated
+      if (update.Password) {
+        update.Password = Users.hashPassword(update.Password);
+      }
+
+      const updatedUser = await Users.findOneAndUpdate(
+        { Username: req.params.Username },
+        { $set: update },
+        { new: true }
+      ).select("-Password -__v");
+
+      if (!updatedUser)
+        return res.status(404).json({ message: "User not found" });
+
+      return res.json(updatedUser);
+    } catch (err) {
+      return res.status(500).json({ message: err.message });
+    }
+  }
+);
+
+// Add movie to favorites
+app.post(
+  "/users/:Username/movies/:MovieID",
+  passport.authenticate("jwt", { session: false }),
+  async (req, res) => {
+    if (req.user.Username !== req.params.Username) {
+      return res.status(403).json({ message: "Permission denied" });
+    }
+
+    try {
+      const updatedUser = await Users.findOneAndUpdate(
+        { Username: req.params.Username },
+        { $addToSet: { FavoriteMovies: req.params.MovieID } },
+        { new: true }
+      ).select("-Password -__v");
+
+      if (!updatedUser)
+        return res.status(404).json({ message: "User not found" });
+
+      return res.json(updatedUser);
+    } catch (err) {
+      return res.status(500).json({ message: err.message });
+    }
+  }
+);
+
+// Remove movie from favorites
+app.delete(
+  "/users/:Username/movies/:MovieID",
+  passport.authenticate("jwt", { session: false }),
+  async (req, res) => {
+    if (req.user.Username !== req.params.Username) {
+      return res.status(403).json({ message: "Permission denied" });
+    }
+
+    try {
+      const updatedUser = await Users.findOneAndUpdate(
+        { Username: req.params.Username },
+        { $pull: { FavoriteMovies: req.params.MovieID } },
+        { new: true }
+      ).select("-Password -__v");
+
+      if (!updatedUser)
+        return res.status(404).json({ message: "User not found" });
+
+      return res.json(updatedUser);
+    } catch (err) {
+      return res.status(500).json({ message: err.message });
+    }
+  }
+);
+
+// Deregister user
+app.delete(
+  "/users/:Username",
+  passport.authenticate("jwt", { session: false }),
+  async (req, res) => {
+    if (req.user.Username !== req.params.Username) {
+      return res.status(403).json({ message: "Permission denied" });
+    }
+
+    try {
+      const deletedUser = await Users.findOneAndDelete({
+        Username: req.params.Username,
+      });
+
+      if (!deletedUser)
+        return res.status(404).json({ message: "User not found" });
+
+      return res.status(200).json({ message: "User deleted" });
+    } catch (err) {
+      return res.status(500).json({ message: err.message });
+    }
+  }
+);
+
+
 
 // Server
 const port = process.env.PORT || 8080;
