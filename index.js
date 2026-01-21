@@ -92,18 +92,10 @@ app.post(
 // ==============================
 
 // Get all movies
-app.get(
-  "/movies",
-  passport.authenticate("jwt", { session: false }),
-  async (req, res) => {
-    try {
-      const movies = await Movies.find();
-      return res.json(movies);
-    } catch (err) {
-      return res.status(500).json({ message: err.message });
-    }
-  }
-);
+app.get("/movies", async (req, res) => {
+  const movies = await Movies.find();
+  return res.status(201).json(movies);
+});
 
 // Get a movie by title
 app.get(
