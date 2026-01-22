@@ -19,3 +19,5 @@ users.json
 
 *.swp
 
+.DS_Store
+.DS_Store

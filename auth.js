@@ -2,44 +2,65 @@
 const jwt = require("jsonwebtoken");
 const passport = require("passport");
 
+// Ensure passport strategies are registered
+require("./passport");
+
 const jwtSecret = process.env.JWT_SECRET || "your_jwt_secret";
 
+// Generate JWT
 const generateJWTToken = (user) =>
   jwt.sign(
-    { _id: user._id, Username: user.Username, Email: user.Email },
+    {
+      _id: user._id,
+      Username: user.Username,
+      Email: user.Email,
+    },
     jwtSecret,
-    { subject: user.Username, expiresIn: "7d", algorithm: "HS256" }
+    {
+      subject: user.Username,
+      expiresIn: "7d",
+      algorithm: "HS256",
+    }
   );
 
 module.exports = (app) => {
   app.post("/login", (req, res) => {
-    passport.authenticate("local", { session: false }, (error, user, info) => {
-      if (error) return res.status(500).json({ message: error.message });
-      if (!user) return res.status(400).json({ message: info?.message || "Login failed" });
-
-      req.login(user, { session: false }, (err) => {
-        if (err) return res.status(500).json({ message: err.message });
-
-      // Passport best-practice: establish login context (without sessions)
-      req.login(user, { session: false }, (err) => {
-        if (err) {
-          console.error("req.login error:", err);
-          return res.status(500).json({ message: "Login failed" });
+    passport.authenticate(
+      "local",
+      { session: false },
+      (error, user, info) => {
+        if (error) {
+          console.error("Login error:", error);
+          return res.status(500).json({ message: "Server error" });
         }
 
-        const token = generateJWTToken(user);
+        if (!user) {
+          return res
+            .status(400)
+            .json({ message: info?.message || "Incorrect username or password" });
+        }
 
-        // IMPORTANT: Never return hashed passwords (or internal fields)
-        const safeUser = {
-          _id: user._id,
-          Username: user.Username,
-          Email: user.Email,
-          Birthday: user.Birthday,
-          FavoriteMovies: user.FavoriteMovies,
-        };
+        // Establish login context (no sessions)
+        req.login(user, { session: false }, (err) => {
+          if (err) {
+            console.error("req.login error:", err);
+            return res.status(500).json({ message: "Login failed" });
+          }
 
-        return res.json({ user: safeUser, token });
-      });
-    })(req, res);
+          const token = generateJWTToken(user);
+
+          // Never return hashed passwords
+          const safeUser = {
+            _id: user._id,
+            Username: user.Username,
+            Email: user.Email,
+            Birthday: user.Birthday,
+            FavoriteMovies: user.FavoriteMovies,
+          };
+
+          return res.json({ user: safeUser, token });
+        });
+      }
+    )(req, res);
   });
 };
