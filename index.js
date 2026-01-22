@@ -80,7 +80,7 @@ app.post(
       const cleanUser = user.toObject();
       delete cleanUser.Password;
 
-      res.status(201).json(cleanUser);
+      return res.status(201).json(cleanUser);
     } catch (err) {
       res.status(500).json({ message: err.message });
     }
@@ -92,10 +92,19 @@ app.post(
 // ==============================
 
 // Get all movies
-app.get("/movies", async (req, res) => {
-  const movies = await Movies.find();
-  return res.status(201).json(movies);
-});
+app.get(
+  "/movies",
+  passport.authenticate("jwt", { session: false }),
+  async (req, res) => {
+    console.log("✅ /movies handler hit — returning 200");
+    try {
+      const movies = await Movies.find();
+      return res.status(200).json(movies);
+    } catch (err) {
+      return res.status(500).json({ message: err.message });
+    }
+  }
+);
 
 // Get a movie by title
 app.get(
