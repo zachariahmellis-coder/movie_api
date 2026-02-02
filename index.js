@@ -1,4 +1,5 @@
 const express = require("express");
+const path = require("path");
 const morgan = require("morgan");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -11,13 +12,22 @@ const Movies = Models.Movie;
 
 const app = express();
 
-// Middleware
+// ==============================
+// MIDDLEWARE
+// ==============================
 app.use(morgan("common"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// ✅ Serve static files from /public
+// Example: public/heat.png -> http://localhost:8080/heat.png
+app.use(express.static(path.join(__dirname, "public")));
+
 app.use(cors());
 
-// MongoDB
+// ==============================
+// DB CONNECTION
+// ==============================
 const CONNECTION_URI =
   process.env.CONNECTION_URI || "mongodb://localhost:27017/myflixDB";
 
@@ -26,17 +36,24 @@ mongoose
   .then(() => console.log("✅ MongoDB connected"))
   .catch((err) => console.error("❌ Mongo error:", err));
 
-// 🚨 REGISTER PASSPORT FIRST
+// ==============================
+// AUTH
+// ==============================
 require("./passport");
 app.use(passport.initialize());
-
-// 🚨 THEN REGISTER AUTH *WITH APP*
 require("./auth")(app);
+
+// ==============================
+// ROUTES
+// ==============================
 
 // Home
 app.get("/", (req, res) => {
   res.send("Welcome to myFlix API!");
 });
+
+// ✅ Optional: quick sanity check route for static files
+// app.get("/health", (req, res) => res.json({ ok: true }));
 
 // Protected GET user
 app.get(
@@ -44,8 +61,9 @@ app.get(
   passport.authenticate("jwt", { session: false }),
   async (req, res) => {
     try {
-      const user = await Users.findOne({ Username: req.params.Username })
-        .select("-Password -__v");
+      const user = await Users.findOne({ Username: req.params.Username }).select(
+        "-Password -__v"
+      );
 
       if (!user) return res.status(404).json({ message: "User not found" });
       return res.json(user);
@@ -65,8 +83,7 @@ app.post(
   ],
   async (req, res) => {
     const errors = validationResult(req);
-    if (!errors.isEmpty())
-      return res.status(422).json({ errors: errors.array() });
+    if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
 
     try {
       const hashedPassword = Users.hashPassword(req.body.Password);
@@ -82,7 +99,7 @@ app.post(
 
       return res.status(201).json(cleanUser);
     } catch (err) {
-      res.status(500).json({ message: err.message });
+      return res.status(500).json({ message: err.message });
     }
   }
 );
@@ -96,7 +113,6 @@ app.get(
   "/movies",
   passport.authenticate("jwt", { session: false }),
   async (req, res) => {
-    console.log("✅ /movies handler hit — returning 200");
     try {
       const movies = await Movies.find();
       return res.status(200).json(movies);
@@ -128,8 +144,7 @@ app.get(
   async (req, res) => {
     try {
       const movie = await Movies.findOne({ "Genre.Name": req.params.Name });
-      if (!movie)
-        return res.status(404).json({ message: "Genre not found" });
+      if (!movie) return res.status(404).json({ message: "Genre not found" });
 
       return res.json(movie.Genre);
     } catch (err) {
@@ -145,8 +160,7 @@ app.get(
   async (req, res) => {
     try {
       const movie = await Movies.findOne({ "Director.Name": req.params.Name });
-      if (!movie)
-        return res.status(404).json({ message: "Director not found" });
+      if (!movie) return res.status(404).json({ message: "Director not found" });
 
       return res.json(movie.Director);
     } catch (err) {
@@ -155,11 +169,11 @@ app.get(
   }
 );
 
-// =======================================
+// ==============================
 // USER UPDATE + FAVORITES
-// =======================================
+// ==============================
 
-// Update user (hash password if provided)
+// Update user
 app.put(
   "/users/:Username",
   passport.authenticate("jwt", { session: false }),
@@ -169,19 +183,16 @@ app.put(
     check("Email").optional().isEmail(),
   ],
   async (req, res) => {
-    // Only allow users to update their own account (basic safety)
     if (req.user.Username !== req.params.Username) {
       return res.status(403).json({ message: "Permission denied" });
     }
 
     const errors = validationResult(req);
-    if (!errors.isEmpty())
-      return res.status(422).json({ errors: errors.array() });
+    if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
 
     try {
       const update = { ...req.body };
 
-      // Hash password if it's being updated
       if (update.Password) {
         update.Password = Users.hashPassword(update.Password);
       }
@@ -192,8 +203,7 @@ app.put(
         { new: true }
       ).select("-Password -__v");
 
-      if (!updatedUser)
-        return res.status(404).json({ message: "User not found" });
+      if (!updatedUser) return res.status(404).json({ message: "User not found" });
 
       return res.json(updatedUser);
     } catch (err) {
@@ -218,8 +228,7 @@ app.post(
         { new: true }
       ).select("-Password -__v");
 
-      if (!updatedUser)
-        return res.status(404).json({ message: "User not found" });
+      if (!updatedUser) return res.status(404).json({ message: "User not found" });
 
       return res.json(updatedUser);
     } catch (err) {
@@ -244,8 +253,7 @@ app.delete(
         { new: true }
       ).select("-Password -__v");
 
-      if (!updatedUser)
-        return res.status(404).json({ message: "User not found" });
+      if (!updatedUser) return res.status(404).json({ message: "User not found" });
 
       return res.json(updatedUser);
     } catch (err) {
@@ -268,8 +276,7 @@ app.delete(
         Username: req.params.Username,
       });
 
-      if (!deletedUser)
-        return res.status(404).json({ message: "User not found" });
+      if (!deletedUser) return res.status(404).json({ message: "User not found" });
 
       return res.status(200).json({ message: "User deleted" });
     } catch (err) {
@@ -278,8 +285,8 @@ app.delete(
   }
 );
 
-
-
-// Server
+// ==============================
+// SERVER START
+// ==============================
 const port = process.env.PORT || 8080;
 app.listen(port, () => console.log(`🚀 Listening on port ${port}`));
